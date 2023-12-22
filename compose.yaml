@@ -1,0 +1,52 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: db
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      TZ: Asia/Tokyo
+    command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci
+    expose:
+      - 3306
+#    ports:
+#      - 3306:3306
+    volumes:
+      - ./server/initdb.d:/docker-entrypoint-initdb.d
+      - mysql:/var/lib/mysql
+      - ./server/mysql.cnf:/etc/mysql/conf.d/mysql.cnf
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+
+  adminer:
+    image: adminer:latest
+    container_name: adminer
+    ports:
+      - 8081:8080
+    environment:
+      ADMINER_DEFAULT_SERVER: mysql
+
+  app:
+    container_name: app
+    build: ./server/
+#    ports:
+#      - 8080:8080
+    expose:
+      -  8080
+    tty: true
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  front:
+    build: ./front/
+    container_name: front
+    ports:
+      - 80:80
+    depends_on:
+      - app
+    
+
+volumes:
+  mysql:
